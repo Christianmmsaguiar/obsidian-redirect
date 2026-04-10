@@ -7,12 +7,28 @@
 <style>
   body { font-family: -apple-system, system-ui, sans-serif; text-align: center; padding: 40px 20px; background: #1e1e2e; color: #cdd6f4; }
   a { color: #89b4fa; }
+  .open-btn {
+    display: inline-block;
+    margin-top: 24px;
+    padding: 16px 32px;
+    font-size: 1.2em;
+    font-weight: 600;
+    color: #1e1e2e;
+    background: #89b4fa;
+    border-radius: 12px;
+    text-decoration: none;
+    touch-action: manipulation;
+  }
+  .open-btn:active { background: #74c7ec; }
   .fallback { margin-top: 24px; display: none; }
+  .note-title { font-size: 0.9em; color: #a6adc8; margin-top: 8px; word-break: break-word; }
 </style>
 </head>
 <body>
-<h2>Opening in Obsidian...</h2>
+<h2 id="heading">Opening in Obsidian...</h2>
 <p id="status">Redirecting...</p>
+<p id="note-title" class="note-title"></p>
+<a id="open-btn" class="open-btn" style="display:none;">Abrir no Obsidian</a>
 <div id="fallback" class="fallback">
   <p>If Obsidian didn't open, <a id="manual-link" href="#">tap here</a>.</p>
   <p style="font-size: 0.85em; color: #a6adc8;">Make sure Obsidian is installed.</p>
@@ -28,25 +44,39 @@
     return;
   }
 
+  // Show note path for context
+  var title = decodeURIComponent(file).replace(/\.md$/i, '').split('/').pop().replace(/[-_]/g, ' ');
+  document.getElementById('note-title').textContent = decodeURIComponent(file);
+
   var obsidianUrl = 'obsidian://open?vault=' + encodeURIComponent(vault) + '&file=' + encodeURIComponent(file);
   var intentUrl = 'intent://open?vault=' + encodeURIComponent(vault) + '&file=' + encodeURIComponent(file) + '#Intent;scheme=obsidian;package=md.obsidian;end';
 
   var ua = navigator.userAgent || '';
-  var isAndroidWebView = /Android/i.test(ua) && (/Telegram/i.test(ua) || /\bwv\b/.test(ua));
+  var isAndroid = /Android/i.test(ua);
+  var isInAppBrowser = /Telegram/i.test(ua) || /\bwv\b/.test(ua) || /Instagram/i.test(ua) || /FBAN/i.test(ua);
 
-  var targetUrl = isAndroidWebView ? intentUrl : obsidianUrl;
-
-  document.getElementById('manual-link').href = targetUrl;
-
-  window.location.href = targetUrl;
-
-  setTimeout(function() {
-    document.getElementById('fallback').style.display = 'block';
-    document.getElementById('status').textContent = 'Obsidian should be opening...';
-    if (isAndroidWebView) {
-      document.getElementById('manual-link').href = intentUrl;
-    }
-  }, 1500);
+  if (isAndroid && isInAppBrowser) {
+    // In-app browsers block programmatic navigation to custom schemes.
+    // Show a button — the user tap provides the required gesture.
+    document.getElementById('heading').textContent = 'Toque para abrir';
+    document.getElementById('status').textContent = '';
+    var btn = document.getElementById('open-btn');
+    btn.href = intentUrl;
+    btn.style.display = 'inline-block';
+    // Also set manual fallback to obsidian:// in case intent doesn't work
+    document.getElementById('manual-link').href = obsidianUrl;
+    setTimeout(function() {
+      document.getElementById('fallback').style.display = 'block';
+    }, 4000);
+  } else {
+    // Desktop / iOS / regular browser — auto-redirect works
+    document.getElementById('manual-link').href = obsidianUrl;
+    window.location.href = obsidianUrl;
+    setTimeout(function() {
+      document.getElementById('fallback').style.display = 'block';
+      document.getElementById('status').textContent = 'Obsidian should be opening...';
+    }, 1500);
+  }
 })();
 </script>
 </body>
