@@ -30,7 +30,7 @@
 <p id="note-title" class="note-title"></p>
 <a id="open-btn" class="open-btn" style="display:none;">Abrir no Obsidian</a>
 <div id="fallback" class="fallback">
-  <p>If Obsidian didn't open, <a id="manual-link" href="#">tap here</a>.</p>
+  <p>Se o primeiro botão falhar, <a id="manual-link" href="#">tente este fallback</a>.</p>
   <p style="font-size: 0.85em; color: #a6adc8;">Make sure Obsidian is installed.</p>
 </div>
 <script>
@@ -44,8 +44,6 @@
     return;
   }
 
-  // Show note path for context
-  var title = decodeURIComponent(file).replace(/\.md$/i, '').split('/').pop().replace(/[-_]/g, ' ');
   document.getElementById('note-title').textContent = decodeURIComponent(file);
 
   var obsidianUrl = 'obsidian://open?vault=' + encodeURIComponent(vault) + '&file=' + encodeURIComponent(file);
@@ -53,23 +51,20 @@
 
   var ua = navigator.userAgent || '';
   var isAndroid = /Android/i.test(ua);
-  var isInAppBrowser = /Telegram/i.test(ua) || /\bwv\b/.test(ua) || /Instagram/i.test(ua) || /FBAN/i.test(ua);
+  var btn = document.getElementById('open-btn');
 
-  if (isAndroid && isInAppBrowser) {
-    // In-app browsers block programmatic navigation to custom schemes.
-    // Show a button — the user tap provides the required gesture.
+  if (isAndroid) {
+    // On Android, require an explicit tap. This avoids relying on brittle
+    // user-agent checks and works for Telegram WebView, Chrome Custom Tabs,
+    // and regular browsers with the same flow.
     document.getElementById('heading').textContent = 'Toque para abrir';
-    document.getElementById('status').textContent = '';
-    var btn = document.getElementById('open-btn');
+    document.getElementById('status').textContent = 'Use o botao abaixo para abrir a nota no Obsidian.';
     btn.href = intentUrl;
     btn.style.display = 'inline-block';
-    // Also set manual fallback to obsidian:// in case intent doesn't work
-    document.getElementById('manual-link').href = obsidianUrl;
-    setTimeout(function() {
-      document.getElementById('fallback').style.display = 'block';
-    }, 4000);
+    document.getElementById('manual-link').href = intentUrl;
+    document.getElementById('fallback').style.display = 'block';
   } else {
-    // Desktop / iOS / regular browser — auto-redirect works
+    // Desktop / iOS: auto-redirect is still the least-friction option.
     document.getElementById('manual-link').href = obsidianUrl;
     window.location.href = obsidianUrl;
     setTimeout(function() {
